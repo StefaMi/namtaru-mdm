@@ -1,0 +1,77 @@
+/* global */
+body {
+  font-family: 'Poppins', sans-serif;
+  background: #f0f4f8;
+  color: #111827;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+}
+
+/* Formular‑Container */
+form {
+  background: #ffffff;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  width: 320px;
+}
+
+/* Inputs und Button */
+input[type="text"],
+input[type="password"],
+button {
+  width: 100%;
+  padding: 10px 12px;
+  margin: 8px 0;
+  border-radius: 4px;
+  font-size: 1rem;
+  border: 1px solid #cbd5e1;
+  box-sizing: border-box;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+button {
+  background: #3b82f6;
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+button:hover {
+  background: #2563eb;
+}
+
+/* Flash‑Nachrichten */
+.flash {
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border-radius: 4px;
+  font-size: 0.95rem;
+}
+
+.flash.success {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #10b981;
+}
+
+.flash.danger {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #ef4444;
+}
+
+.flash.info {
+  background: #dbecff;
+  color: #1e3a8a;
+  border: 1px solid #3b82f6;
+}

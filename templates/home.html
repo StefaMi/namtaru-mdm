@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="de">
+<head><meta charset="UTF-8"><title>Home</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <h1>Willkommen, {{ user }}!</h1>
+  <p>Deine Rolle: {{ role }}</p>
+  <nav>
+    <a href="{{ url_for('logout') }}">Logout</a>
+    {% if role == 'admin' %}
+      | <a href="{{ url_for('admin_panel') }}">Admin-Panel</a>
+    {% endif %}
+  </nav>
+</body>
+</html>
