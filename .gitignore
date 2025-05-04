@@ -1,0 +1,43 @@
+# 🐍 Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# 📁 Virtuelle Umgebungen
+venv/
+env/
+.venv/
+
+# 🧪 Test-/Debug-Dateien
+*.log
+*.db
+*.sqlite3
+instance/
+
+# 📁 Logs
+logs/
+*.log
+
+# ⚙️ VS Code
+.vscode/
+
+# 🔒 Umgebungsvariablen
+.env
+
+# 🚫 Mac/Linux/Windows-Systemdateien
+.DS_Store
+Thumbs.db
+
+# ⚙️ PyInstaller builds
+*.spec
+dist/
+build/
+
+# 🛑 __init__ builds
+*.egg-info/
+
+# 🧪 Test coverage
+.coverage
+htmlcov/
