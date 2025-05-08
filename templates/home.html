@@ -1,16 +1,38 @@
-<!DOCTYPE html>
-<html lang="de">
-<head><meta charset="UTF-8"><title>Home</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-  <h1>Willkommen, {{ user }}!</h1>
-  <p>Deine Rolle: {{ role }}</p>
-  <nav>
-    <a href="{{ url_for('logout') }}">Logout</a>
-    {% if role == 'admin' %}
-      | <a href="{{ url_for('admin_panel') }}">Admin-Panel</a>
-    {% endif %}
-  </nav>
-</body>
-</html>
+{% extends 'base.html' %}
+
+{% block title %}Home – Namtaru MDM{% endblock %}
+
+{% block content %}
+<div class="text-center">
+    <h2 class="mb-3">👋 Willkommen, {{ user }}!</h2>
+    <p class="lead">Deine Rolle: <strong>{{ role }}</strong></p>
+
+    <nav class="mt-4">
+        <a class="btn btn-outline-secondary me-2" href="{{ url_for('logout') }}">Logout</a>
+        {% if role == 'admin' %}
+            <a class="btn btn-outline-primary" href="{{ url_for('admin_panel') }}">Admin-Panel</a>
+        {% endif %}
+    </nav>
+</div>
+
+<hr class="my-5">
+
+<div class="row text-center">
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">📱 Geräte registriert</h5>
+                <p class="display-5 text-primary">0</p> <!-- Platzhalter -->
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">🕒 Letzte Aktivität</h5>
+                <p class="text-muted">Noch keine Daten verfügbar</p> <!-- Platzhalter -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
