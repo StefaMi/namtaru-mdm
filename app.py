@@ -12,7 +12,7 @@ app = Flask(__name__)
 app.secret_key = "Milash91281288!"  # Für Sessions!
 
 # 📦 SQLAlchemy-Konfiguration
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///instance/namtaru.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///namtaru.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 
@@ -27,7 +27,7 @@ def login():
 
         if user and user.check_password(password):
             session['user'] = user.username
-            session['role'] = user.role
+            session['role'] = user.role.name
             flash(f"Eingeloggt als {user.username}", "success")
             return redirect(url_for('home'))
         else:
