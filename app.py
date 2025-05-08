@@ -1,28 +1,38 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
+from models import db, User
 from functools import wraps
 import logging
+
+
+
 logging.basicConfig(filename='logs/app.log',
                     level=logging.DEBUG,
                     format='%(asctime)s %(levelname)s %(message)s')
 app = Flask(__name__)
 app.secret_key = "Milash91281288!"  # für Sessions!
 
-# 1. User‑Daten (vorerst hard‑coded)
-users = {
-    "admin":   {"password": "Milash91281288!",   "role": "admin"},
-    "support": {"password": "supportpass", "role": "support"}
-}
+# SQLAlchemy-Konfiguration
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///namtaru.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db.init_app(app)
 
-# 2. Login‑Route
+# Logging-Konfiguration
+logging.basicConfig(filename='logs/app.log',
+                    level=logging.DEBUG,
+                    format='%(asctime)s %(levelname)s %(message)s')
+
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        user = request.form['username']
-        pwd  = request.form['password']
-        if user in users and users[user]['password'] == pwd:
-            session['user'] = user
-            session['role'] = users[user]['role']
-            flash(f"Eingeloggt als {user}", "success")
+        username = request.form['username']
+        password = request.form['password']
+        user = User.query.filter_by(username=username).first()
+        if user and user.check_password(password):
+            session['user'] = user.username
+            session['role'] = user.role
+            flash(f"Eingeloggt als {user.username}", "success")
             return redirect(url_for('home'))
         else:
             flash("Ungültiger Benutzer oder Passwort", "danger")
