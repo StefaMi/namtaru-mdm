@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Namtaru MDM{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+    <!-- 🔰 Branding-Leiste -->
+    <nav class="navbar navbar-light bg-white border-bottom shadow-sm">
+        <div class="container-fluid ps-4">
+            <a class="navbar-brand d-flex align-items-center" href="#">
+                <img src="{{ url_for('static', filename='img/namtaru-logo.png') }}" alt="Namtaru Logo" width="50" height="50" class="me-2">
+                <span class="fw-bold fs-4 text-dark">NAMTARU</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- 📦 Inhalt -->
+    <div class="container mt-5">
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
