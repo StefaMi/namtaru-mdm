@@ -1,26 +1,38 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="UTF-8">
-  <title>Login – Namtaru MDM</title>
-  <!-- Hier binden wir dein globales CSS ein -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-  <h2>Login</h2>
+{% extends 'base.html' %}
 
-  <!-- Flash‑Nachrichten -->
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% for cat, msg in messages %}
-      <div class="flash {{ cat }}">{{ msg }}</div>
-    {% endfor %}
-  {% endwith %}
+{% block title %}Login – Namtaru MDM{% endblock %}
 
-  <!-- Login‑Formular -->
-  <form method="POST">
-    <input name="username" type="text" placeholder="Benutzername" required><br>
-    <input name="password" type="password" placeholder="Passwort" required><br>
-    <button type="submit">Einloggen</button>
-  </form>
-</body>
-</html>
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h3 class="card-title text-center mb-4">🔐 Login</h3>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% if messages %}
+                    {% for category, message in messages %}
+                      <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                      </div>
+                    {% endfor %}
+                  {% endif %}
+                {% endwith %}
+
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Benutzername</label>
+                        <input type="text" class="form-control" id="username" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Passwort</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Einloggen</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
