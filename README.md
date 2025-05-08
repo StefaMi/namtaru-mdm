@@ -2,7 +2,7 @@
 
 **Namtaru** ist ein selbst entwickelter Mobile Device Management (MDM) Server, der eine sichere und benutzerfreundliche Verwaltung mobiler Endgeräte ermöglicht.  
 Benannt nach dem assyrischen Begriff für „Beschützer“, kombiniert Namtaru modernes Design mit klaren Sicherheitsfunktionen.
-
+privates Projekt! 
 ---
 
 ## 🔧 Funktionen (in Entwicklung)
