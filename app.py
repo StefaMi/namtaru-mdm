@@ -1,7 +1,9 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from models import db, User
 from functools import wraps
+from datetime import datetime
 import logging
+from models import Device
 
 # Logging-Konfiguration
 logging.basicConfig(filename='logs/app.log',
@@ -67,6 +69,48 @@ def home():
 @login_required(role='admin')
 def admin_panel():
     return render_template('admin.html', user=session['user'], role=session['role'])
+
+#   Device hinzufügen
+@app.route('/devices')
+@login_required()
+def devices():
+    # Alle Geräte holen
+    all_devices = Device.query.all()
+    return render_template('devices.html', devices=all_devices, role=session['role'])
+
+# 🗑️ Device löschen
+@app.route('/devices/delete/<int:device_id>', methods=['POST'])
+@login_required()
+def delete_device(device_id):
+    user = User.query.filter_by(username=session['user']).first()
+
+    # DEBUG-Ausgabe
+    print("User:", user.username)
+    print("Rolle:", user.role.name)
+    print("Darf löschen?", user.role.can_delete_devices)
+
+    if not user.role.can_delete_devices:
+        flash("Keine Berechtigung zum Löschen", "warning")
+        return redirect(url_for('devices'))
+
+    device = Device.query.get_or_404(device_id)
+    db.session.delete(device)
+    db.session.commit()
+    flash(f"Gerät '{device.name}' wurde gelöscht", "success")
+    return redirect(url_for('devices'))
+
+
+    # Rollen-Rechte checken
+    if not user.role.can_delete_devices:
+        flash("Keine Berechtigung zum Löschen", "warning")
+        return redirect(url_for('devices'))
+
+    device = Device.query.get_or_404(device_id)
+    db.session.delete(device)
+    db.session.commit()
+    flash(f"Gerät '{device.name}' wurde gelöscht", "success")
+    return redirect(url_for('devices'))
+
 
 # 🚀 App starten
 if __name__ == '__main__':

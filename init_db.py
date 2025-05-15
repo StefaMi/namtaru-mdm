@@ -1,5 +1,6 @@
 from app import app
 from models import db, User, Role
+from models import Device
 
 with app.app_context():
     db.drop_all()
@@ -29,4 +30,15 @@ with app.app_context():
     support.set_password("supportpass")
 
     db.session.add_all([admin, support])
+    db.session.commit()
+
+    test_device = Device(
+    name="iPhone 13",
+    type="Smartphone",
+    platform="iOS",
+    status="Aktiv",
+    user=support  # Gerät gehört Support-User
+    )
+
+    db.session.add(test_device)
     db.session.commit()

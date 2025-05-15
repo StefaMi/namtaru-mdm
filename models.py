@@ -22,3 +22,15 @@ class User(db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+class Device(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    type = db.Column(db.String(50))  # z. B. Smartphone, Tablet
+    platform = db.Column(db.String(50))  # z. B. iOS, Android
+    status = db.Column(db.String(50), default="Aktiv")  # Aktiv, Gesperrt, Gelöscht
+    last_checkin = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user = db.relationship('User', backref='devices')

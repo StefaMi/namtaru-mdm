@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block title %}Geräte – Namtaru MDM{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">📱 Geräteübersicht</h2>
+
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Name</th>
+      <th>Typ</th>
+      <th>Plattform</th>
+      <th>Status</th>
+      <th>Besitzer</th>
+      <th>Letzter Check-In</th>
+      {% if role == 'admin' or role == 'support' %}
+      <th>Aktionen</th>
+      {% endif %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for d in devices %}
+    <tr>
+      <td>{{ d.id }}</td>
+      <td>{{ d.name }}</td>
+      <td>{{ d.type }}</td>
+      <td>{{ d.platform }}</td>
+      <td>{{ d.status }}</td>
+      <td>{{ d.user.username if d.user else '-' }}</td>
+      <td>{{ d.last_checkin.strftime("%d.%m.%Y %H:%M") if d.last_checkin else '-' }}</td>
+      {% if role == 'admin' or role == 'support' %}
+      <td>
+        {% if role in ['admin', 'support'] and session.get('role') and (session.get('role') in ['admin','support']) %}
+          <form method="POST" action="{{ url_for('delete_device', device_id=d.id) }}" class="d-inline">
+            <button class="btn btn-sm btn-danger" onclick="return confirm('Gerät wirklich löschen?')">
+              🗑️
+            </button>
+          </form>
+        {% endif %}
+      </td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
+
