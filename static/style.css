@@ -75,3 +75,52 @@ button:hover {
   color: #1e3a8a;
   border: 1px solid #3b82f6;
 }
+
+.footer {
+    margin-top: 16px;
+    font-size: 0.9rem;
+    color: #6b7280; /* dezentes grau */
+    text-align: center;
+    }
+    
+.footer a {
+    color: #3b82f6;
+    text-decoration: underline;
+    margin: 0 4px;
+    }    
+    
+/* Branding oben links */
+
+.branding-bar {
+  position: absolute;
+  top: 20px;
+  left: 30px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 999;
+}
+
+.branding-bar img {
+  height: 40px;
+}
+
+.branding-bar span {
+  color: #ffffff;
+  font-weight: bold;
+  font-size: 1.4rem;
+  letter-spacing: 1px;
+}
+
+/* Hintergrundwellen mit Binärcode */
+
+body::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("{{ url_for('static', filename='img/binary-wave-dark.png') }}") no-repeat center center / cover;
+  opacity: 0.07;
+  z-index: 0;
+  pointer-events: none;
+}
+    

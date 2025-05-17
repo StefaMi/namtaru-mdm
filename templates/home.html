@@ -1,38 +1,112 @@
-{% extends 'base.html' %}
-
-{% block title %}Home – Namtaru MDM{% endblock %}
-
-{% block content %}
-<div class="text-center">
-    <h2 class="mb-3">👋 Willkommen, {{ user }}!</h2>
-    <p class="lead">Deine Rolle: <strong>{{ role }}</strong></p>
-
-    <nav class="mt-4">
-        <a class="btn btn-outline-secondary me-2" href="{{ url_for('logout') }}">Logout</a>
-        {% if role == 'admin' %}
-            <a class="btn btn-outline-primary" href="{{ url_for('admin_panel') }}">Admin-Panel</a>
-        {% endif %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Namtaru | Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:400,600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Montserrat', sans-serif;
+      background: linear-gradient(to right, #141414, #1f1f1f);
+      color: #fff;
+      height: 100vh;
+      overflow: hidden;
+    }
+    body::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: url("{{ url_for('static', filename='img/binary-wave-dark.png') }}") no-repeat center center / cover;
+      opacity: 0.05;
+      z-index: 0;
+      pointer-events: none;
+    }
+    header {
+      background: #1c1c1c;
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
+    header .branding {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    header img {
+      height: 40px;
+    }
+    header h1 {
+      font-size: 1.5rem;
+      letter-spacing: 1px;
+      color: #fff;
+    }
+    nav {
+      display: flex;
+      gap: 20px;
+    }
+    nav a {
+      color: #ccc;
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.3s;
+    }
+    nav a:hover {
+      color: #fff;
+    }
+    main {
+      padding: 40px;
+      position: relative;
+      z-index: 1;
+    }
+    .card {
+      background: #2b2b2b;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      margin-top: 0;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="branding">
+      <img src="{{ url_for('static', filename='img/namtaru-logo.png') }}" alt="Logo">
+      <h1>NAMTARU</h1>
+    </div>
+    <nav>
+      <a href="/devices">Geräte</a>
+      <a href="/admin">Admin</a>
+      <a href="/logout">Logout</a>
     </nav>
-</div>
-
-<hr class="my-5">
-
-<div class="row text-center">
-    <div class="col-md-6 mb-4">
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <h5 class="card-title">📱 Geräte registriert</h5>
-                <p class="display-5 text-primary">0</p> <!-- Platzhalter -->
-            </div>
-        </div>
+  </header>
+  <main>
+    <div class="grid">
+      <div class="card">
+        <h2>Geräte insgesamt</h2>
+        <p>42</p>
+      </div>
+      <div class="card">
+        <h2>Letzte Aktivitäten</h2>
+        <p>5 neue Anmeldungen heute</p>
+      </div>
+      <div class="card">
+        <h2>Aktive Admins</h2>
+        <p>2</p>
+      </div>
     </div>
-    <div class="col-md-6 mb-4">
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <h5 class="card-title">🕒 Letzte Aktivität</h5>
-                <p class="text-muted">Noch keine Daten verfügbar</p> <!-- Platzhalter -->
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
+  </main>
+</body>
+</html>
+
