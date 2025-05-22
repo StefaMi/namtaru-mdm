@@ -5,20 +5,26 @@
     <title>{% block title %}Namtaru MDM{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body class="bg-light">
+<body class="bg-dark text-light">
 
-    <!-- 🔰 Branding-Leiste -->
-    <nav class="navbar navbar-light bg-white border-bottom shadow-sm">
-        <div class="container-fluid ps-4">
-            <a class="navbar-brand d-flex align-items-center" href="#">
-                <img src="{{ url_for('static', filename='img/namtaru-logo.png') }}" alt="Namtaru Logo" width="50" height="50" class="me-2">
-                <span class="fw-bold fs-4 text-dark">NAMTARU</span>
-            </a>
+    <!-- 🔰 Branding & Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-black shadow-sm px-4">
+        <a class="navbar-brand d-flex align-items-center" href="/">
+            <img src="{{ url_for('static', filename='img/namtaru-logo.png') }}" alt="Logo" width="40" class="me-2">
+            <span class="fw-bold fs-4">NAMTARU</span>
+        </a>
+        <div class="ms-auto d-flex gap-3">
+            <a class="nav-link text-light" href="{{ url_for('home') }}">Dashboard</a>
+            <a class="nav-link text-light" href="{{ url_for('devices') }}">Geräte</a>
+            {% if session.get('role') == 'admin' %}
+                <a class="nav-link text-light" href="{{ url_for('admin_panel') }}">Admin</a>
+            {% endif %}
+            <a class="nav-link text-danger" href="{{ url_for('logout') }}">Logout</a>
         </div>
     </nav>
 
-    <!-- 📦 Inhalt -->
-    <div class="container mt-5">
+    <!-- 📦 Seiteninhalt -->
+    <div class="container py-5">
         {% block content %}{% endblock %}
     </div>
 
