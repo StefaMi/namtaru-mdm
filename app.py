@@ -4,6 +4,8 @@ from functools import wraps
 from datetime import datetime
 import logging
 from models import Device
+import qrcode
+import uuid
 
 # Logging-Konfiguration
 logging.basicConfig(filename='logs/app.log',
@@ -111,6 +113,35 @@ def delete_device(device_id):
     flash(f"Gerät '{device.name}' wurde gelöscht", "success")
     return redirect(url_for('devices'))
 
+
+# QR-Code erstellung
+@app.route("/generate_qr")
+@login_required(role='admin')
+def generate_qr():
+    token = str(uuid.uuid4())
+    url = url_for('enroll' , token=token, _external=True)
+
+    img = qrcode.make(url)
+    path = f"static/qrcodes/{token}.png"
+    img.save(path)
+
+    return render_template("qr_preview.html" , qr_path=path, token=token)
+
+@app.route("/enroll")
+def enroll():
+    token = request.args.get("token")
+
+    # Optional: Token validieren (später)
+    new_device = Device(
+        name="Unbenanntes Gerät",
+        enrollment_token=token,
+        created_at=datetime.utcnow()
+    )
+    db.session.add(new_device)
+    db.session.commit()
+
+    flash("Gerät erfolgreich registriert!", "success")
+    return redirect(url_for('devices'))
 
 # 🚀 App starten
 if __name__ == '__main__':

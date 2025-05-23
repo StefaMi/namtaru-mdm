@@ -18,6 +18,7 @@
             <a class="nav-link text-light" href="{{ url_for('devices') }}">Geräte</a>
             {% if session.get('role') == 'admin' %}
                 <a class="nav-link text-light" href="{{ url_for('admin_panel') }}">Admin</a>
+                <a class="nav-link text-light" href="{{ url_for('generate_qr') }}">QR-Code</a>
             {% endif %}
             <a class="nav-link text-danger" href="{{ url_for('logout') }}">Logout</a>
         </div>

@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block title %}QR-Code erstellen{% endblock %}
+
+{% block content %}
+    <div class="text-center">
+        <h2 class="mb-4">Geräte-QR-Code zur Registrierung</h2>
+        <img src="{{ url_for( 'static' , filename='qrcodes/' + token + '.png')}}" alt="QR Code" class="img-fluid rounded shadow">
+        <p class="mt-3">Scanne den Code mit einem Gerät zur Registrierung.</p>
+        <code>{{ url_for('enroll' , token=token, _external=True) }}</code>
+    </div>
+{% endblock %}
