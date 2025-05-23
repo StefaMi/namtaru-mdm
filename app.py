@@ -10,13 +10,7 @@ import os
 import logging
 
 # 🔐 Sicherstellen, dass der logs-Ordner existiert
-os.makedirs("logs", exist=exist_ok=True)
-
-logging.basicConfig(
-        filename='logs/app.log',
-        level=logging=DEBUG,
-        format='%(asctime)s %(levelname)s %(message)s'
-)
+os.makedirs("logs", exist_ok=True)
 
 
 # Logging-Konfiguration
@@ -103,9 +97,6 @@ def delete_device(device_id):
     print("Rolle:", user.role.name)
     print("Darf löschen?", user.role.can_delete_devices)
 
-    if not user.role.can_delete_devices:
-        flash("Keine Berechtigung zum Löschen", "warning")
-        return redirect(url_for('devices'))
 
     device = Device.query.get_or_404(device_id)
     db.session.delete(device)
@@ -113,17 +104,6 @@ def delete_device(device_id):
     flash(f"Gerät '{device.name}' wurde gelöscht", "success")
     return redirect(url_for('devices'))
 
-
-    # Rollen-Rechte checken
-    if not user.role.can_delete_devices:
-        flash("Keine Berechtigung zum Löschen", "warning")
-        return redirect(url_for('devices'))
-
-    device = Device.query.get_or_404(device_id)
-    db.session.delete(device)
-    db.session.commit()
-    flash(f"Gerät '{device.name}' wurde gelöscht", "success")
-    return redirect(url_for('devices'))
 
 
 # QR-Code erstellung
@@ -132,7 +112,8 @@ def delete_device(device_id):
 def generate_qr():
     token = str(uuid.uuid4())
     url = f"https://namtaru-mdm.onrender.com/enroll?token={token}"
-
+    
+    os.makedirs("static/qrcodes", exist_ok=True)
     img = qrcode.make(url)
     path = f"static/qrcodes/{token}.png"
     img.save(path)
