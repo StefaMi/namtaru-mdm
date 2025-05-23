@@ -7,7 +7,7 @@ from models import Device
 import qrcode
 import uuid
 import os
-import logging
+
 
 # 🔐 Sicherstellen, dass der logs-Ordner existiert
 os.makedirs("logs", exist_ok=True)
