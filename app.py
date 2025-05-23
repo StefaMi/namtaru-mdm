@@ -6,6 +6,18 @@ import logging
 from models import Device
 import qrcode
 import uuid
+import os
+import logging
+
+# 🔐 Sicherstellen, dass der logs-Ordner existiert
+os.makedirs("logs", exist=exist_ok=True)
+
+logging.basicConfig(
+        filename='logs/app.log',
+        level=logging=DEBUG,
+        format='%(asctime)s %(levelname)s %(message)s'
+)
+
 
 # Logging-Konfiguration
 logging.basicConfig(filename='logs/app.log',
@@ -119,7 +131,7 @@ def delete_device(device_id):
 @login_required(role='admin')
 def generate_qr():
     token = str(uuid.uuid4())
-    url = url_for('enroll' , token=token, _external=True)
+    url = f"https://namtaru-mdm.onrender.com/enroll?token={token}"
 
     img = qrcode.make(url)
     path = f"static/qrcodes/{token}.png"
