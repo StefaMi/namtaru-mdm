@@ -1,11 +1,12 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
-from models import db, User, Device
+from models import db, User, Device, Role
 from functools import wraps
 from datetime import datetime
 import logging
 import qrcode
 import uuid
 import os
+import sys
 
 # Sicherstellen, dass der logs-Ordner existiert
 os.makedirs("logs", exist_ok=True)
@@ -16,12 +17,21 @@ file_handler = logging.FileHandler('logs/app.log')
 file_handler.setFormatter(log_formatter)
 file_handler.setLevel(logging.DEBUG)
 
+stream_handler = logging.StreamHandler(sys.stdout)
+stream_handler.setFormatter(log_formatter)
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 logger.addHandler(file_handler)
+logger.addHandler(stream_handler)
 
 app = Flask(__name__)
 app.secret_key = "Milash91281288!"  # Für Sessions!
+
+# Session-Konfiguration für HTTPS-Umgebungen (Render)
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 # SQLAlchemy-Konfiguration
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///namtaru.db'
@@ -29,12 +39,29 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # DB initialisieren
 db.init_app(app)
+
+# Wenn Datenbank nicht existiert, automatisch anlegen (nur beim ersten Start)
 with app.app_context():
-    if not os.path.isfile(os.path.join(os.getcwd(), "namtaru.db")):
+    if not os.path.exists("namtaru.db"):
         db.create_all()
-        logger.info("SQLite-Datenbank wurde auf dem Server neu erstellt")
-        db_path = os.path.join(os.getcwd(), "namtaru.db")
-        logger.info(f"Pfad zur Datenbank: {db_path}")
+        logger.info("SQLite-Datenbank wurde auf dem Server neu erstellt.")
+
+        # Beispielrollen und Benutzer hinzufügen
+        admin_role = Role(name="admin", can_delete_devices=True, can_manage_users=True, can_assign_roles=True)
+        support_role = Role(name="support", can_delete_devices=True)
+        db.session.add_all([admin_role, support_role])
+        db.session.commit()
+
+        admin_user = User(username="admin", role=admin_role)
+        admin_user.set_password("Milash91281288!")
+        support_user = User(username="support", role=support_role)
+        support_user.set_password("supportpass")
+        db.session.add_all([admin_user, support_user])
+        db.session.commit()
+
+        demo_device = Device(name="iPhone 13", platform="iOS", status="Aktiv", user=support_user)
+        db.session.add(demo_device)
+        db.session.commit()
 
 # Login-Route
 @app.route('/login', methods=['GET', 'POST'])
@@ -49,6 +76,7 @@ def login():
             session['user'] = user.username
             session['role'] = user.role.name if user.role else 'user'
             logger.info(f"Login erfolgreich: {user.username} ({session['role']})")
+            logger.info(f"Session gesetzt: {session}")
             flash(f"Eingeloggt als {user.username}", "success")
             return redirect(url_for('home'))
         else:
@@ -85,6 +113,7 @@ def login_required(role=None):
 @app.route('/')
 @login_required()
 def home():
+    logger.info(f"Aktive Session beim Home-Zugriff: {session}")
     user = session.get('user')
     role = session.get('role')
     device_count = Device.query.count()
@@ -175,7 +204,7 @@ def enroll():
 # Fehlerhandler für 500
 @app.errorhandler(500)
 def internal_error(error):
-    logger.error(f"Interner Serverfehler: {error}")
+    logger.exception("Interner Serverfehler")
     return render_template("500.html"), 500
 
 # App starten
