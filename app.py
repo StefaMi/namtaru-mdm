@@ -1,32 +1,39 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
-from models import db, User
+from models import db, User, Device
 from functools import wraps
 from datetime import datetime
 import logging
-from models import Device
 import qrcode
 import uuid
 import os
 
-
-# 🔐 Sicherstellen, dass der logs-Ordner existiert
+# Sicherstellen, dass der logs-Ordner existiert
 os.makedirs("logs", exist_ok=True)
 
-
 # Logging-Konfiguration
-logging.basicConfig(filename='logs/app.log',
-                    level=logging.DEBUG,
-                    format='%(asctime)s %(levelname)s %(message)s')
+log_formatter = logging.Formatter('[%(asctime)s] [%(levelname)s] %(message)s')
+file_handler = logging.FileHandler('logs/app.log')
+file_handler.setFormatter(log_formatter)
+file_handler.setLevel(logging.DEBUG)
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+logger.addHandler(file_handler)
 
 app = Flask(__name__)
 app.secret_key = "Milash91281288!"  # Für Sessions!
 
-# 📦 SQLAlchemy-Konfiguration
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///namtaru.db'
+# SQLAlchemy-Konfiguration
+def new_func(app):
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///namtaru.db'
+
+new_func(app)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# DB initialisieren
 db.init_app(app)
 
-# 🔐 Login-Route (Datenbankbasiert)
+# Login-Route
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -37,22 +44,26 @@ def login():
 
         if user and user.check_password(password):
             session['user'] = user.username
-            session['role'] = user.role.name
+            session['role'] = user.role.name if user.role else 'user'
+            logger.info(f"Login erfolgreich: {user.username} ({session['role']})")
             flash(f"Eingeloggt als {user.username}", "success")
             return redirect(url_for('home'))
         else:
+            logger.warning(f"Login fehlgeschlagen für Benutzer: {username}")
             flash("Ungültiger Benutzer oder Passwort", "danger")
 
     return render_template('login.html')
 
-# 🔓 Logout
+# Logout
 @app.route('/logout')
 def logout():
+    user = session.get('user')
     session.clear()
+    logger.info(f"Logout: {user}")
     flash("Erfolgreich ausgeloggt", "info")
     return render_template('logout.html')
 
-# 🛡️ Login-Check + Rollen-Check
+# Login-Check + Rollen-Check
 def login_required(role=None):
     def wrapper(f):
         @wraps(f)
@@ -60,43 +71,40 @@ def login_required(role=None):
             if 'user' not in session:
                 return redirect(url_for('login'))
             if role and session.get('role') != role:
+                logger.warning(f"Zugriffsversuch ohne Berechtigung durch: {session.get('user')} (Rolle: {session.get('role')})")
                 flash("Keine Berechtigung für diese Aktion", "warning")
                 return redirect(url_for('home'))
             return f(*args, **kwargs)
         return decorated
     return wrapper
 
-# 🏠 Home (geschützt)
+# Home (geschützt)
 @app.route('/')
 @login_required()
 def home():
-    return render_template('home.html', user=session['user'], role=session['role'])
+    return render_template('home.html', user=session.get('user'), role=session.get('role'))
 
-# 🛠️ Admin Panel (nur für Admins)
+# Admin Panel
 @app.route('/admin')
 @login_required(role='admin')
 def admin_panel():
-    return render_template('admin.html', user=session['user'], role=session['role'])
+    return render_template('admin.html', user=session.get('user'), role=session.get('role'))
 
-#   Device hinzufügen
+# Geräte anzeigen
 @app.route('/devices')
 @login_required()
 def devices():
-    # Alle Geräte holen
     all_devices = Device.query.all()
-    return render_template('devices.html', devices=all_devices, role=session['role'])
+    return render_template('devices.html', devices=all_devices, role=session.get('role'))
 
-# 🗑️ Device löschen
+# Gerät löschen
 @app.route('/devices/delete/<int:device_id>', methods=['POST'])
 @login_required()
 def delete_device(device_id):
-    user = User.query.filter_by(username=session['user']).first()
+    user = User.query.filter_by(username=session.get('user')).first()
 
-    # DEBUG-Ausgabe
-    print("User:", user.username)
-    print("Rolle:", user.role.name)
-    print("Darf löschen?", user.role.can_delete_devices)
-
+    if user and user.role:
+        logger.info(f"{user.username} löscht Gerät-ID: {device_id} (Rolle: {user.role.name})")
 
     device = Device.query.get_or_404(device_id)
     db.session.delete(device)
@@ -104,27 +112,26 @@ def delete_device(device_id):
     flash(f"Gerät '{device.name}' wurde gelöscht", "success")
     return redirect(url_for('devices'))
 
-
-
-# QR-Code erstellung
+# QR-Code erstellen
 @app.route("/generate_qr")
 @login_required(role='admin')
 def generate_qr():
     token = str(uuid.uuid4())
     url = f"https://namtaru-mdm.onrender.com/enroll?token={token}"
-    
+
     os.makedirs("static/qrcodes", exist_ok=True)
     img = qrcode.make(url)
     path = f"static/qrcodes/{token}.png"
     img.save(path)
 
-    return render_template("qr_preview.html" , qr_path=path, token=token)
+    logger.info(f"QR-Code erstellt für Enrollment-Token: {token}")
+    return render_template("qr_preview.html", qr_path=path, token=token)
 
+# Enrollment-Route
 @app.route("/enroll")
 def enroll():
     token = request.args.get("token")
 
-    # Optional: Token validieren (später)
     new_device = Device(
         name="Unbenanntes Gerät",
         enrollment_token=token,
@@ -133,9 +140,16 @@ def enroll():
     db.session.add(new_device)
     db.session.commit()
 
+    logger.info(f"Neues Gerät registriert mit Token: {token}")
     flash("Gerät erfolgreich registriert!", "success")
     return redirect(url_for('devices'))
 
-# 🚀 App starten
+# Fehlerhandler für 500
+@app.errorhandler(500)
+def internal_error(error):
+    logger.error(f"Interner Serverfehler: {error}")
+    return render_template("500.html"), 500
+
+# App starten
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
