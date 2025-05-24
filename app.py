@@ -29,6 +29,10 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # DB initialisieren
 db.init_app(app)
+with app.app_context():
+    if not os.path.exists("namtaru.db"):
+        db.create_all()
+        logger.info("SQLite-Datenbank wurde auf dem Server neu erstellt")
 
 # Login-Route
 @app.route('/login', methods=['GET', 'POST'])
