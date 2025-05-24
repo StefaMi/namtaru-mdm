@@ -24,10 +24,7 @@ app = Flask(__name__)
 app.secret_key = "Milash91281288!"  # Für Sessions!
 
 # SQLAlchemy-Konfiguration
-def new_func(app):
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///namtaru.db'
-
-new_func(app)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///namtaru.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # DB initialisieren
@@ -82,7 +79,18 @@ def login_required(role=None):
 @app.route('/')
 @login_required()
 def home():
-    return render_template('home.html', user=session.get('user'), role=session.get('role'))
+    user = session.get('user')
+    role = session.get('role')
+    device_count = Device.query.count()
+    recent_logins = 5  # Platzhalter für spätere dynamische Berechnung
+
+    return render_template(
+        'home.html',
+        user=user,
+        role=role,
+        device_count=device_count,
+        recent_logins=recent_logins
+    )
 
 # Admin Panel
 @app.route('/admin')
@@ -96,6 +104,20 @@ def admin_panel():
 def devices():
     all_devices = Device.query.all()
     return render_template('devices.html', devices=all_devices, role=session.get('role'))
+
+# Gerät hinzufügen (manuell)
+@app.route('/devices/add', methods=['GET', 'POST'])
+@login_required()
+def add_device():
+    if request.method == 'POST':
+        name = request.form['name']
+        new_device = Device(name=name, created_at=datetime.utcnow())
+        db.session.add(new_device)
+        db.session.commit()
+        logger.info(f"Gerät manuell hinzugefügt: {name}")
+        flash("Gerät hinzugefügt", "success")
+        return redirect(url_for('devices'))
+    return render_template('add_device.html')
 
 # Gerät löschen
 @app.route('/devices/delete/<int:device_id>', methods=['POST'])
