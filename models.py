@@ -26,9 +26,12 @@ class User(db.Model):
 class Device(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    type = db.Column(db.String(50))  # z. B. Smartphone, Tablet
-    platform = db.Column(db.String(50))  # z. B. iOS, Android
-    status = db.Column(db.String(50), default="Aktiv")  # Aktiv, Gesperrt, Gelöscht
+    enrollment_token = db.Column(db.String(36), unique=True)   # für den QR-Token
+    type = db.Column(db.String(50))      # z.B. Smartphone, Desktop
+    platform = db.Column(db.String(50))  # z.B. iOS, Android
+    screen = db.Column(db.String(20))    # z.B. "1080x1920"
+    user_agent = db.Column(db.String(200))  # vollständiger UA-String
+    status = db.Column(db.String(50), default="Aktiv")
     last_checkin = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
