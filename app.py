@@ -11,10 +11,12 @@ import sys
 # Sicherstellen, dass der logs-Ordner existiert
 os.makedirs("logs", exist_ok=True)
 
-# Logging-Konfiguration\log_formatter = logging.Formatter('[%(asctime)s] [%(levelname)s] %(message)s')
+# Logging-Konfiguration
+log_formatter = logging.Formatter('[%(asctime)s] [%(levelname)s] %(message)s')
 file_handler = logging.FileHandler('logs/app.log')
 file_handler.setFormatter(log_formatter)
 file_handler.setLevel(logging.DEBUG)
+
 stream_handler = logging.StreamHandler(sys.stdout)
 stream_handler.setFormatter(log_formatter)
 
@@ -29,6 +31,7 @@ app.secret_key = "Milash91281288!"  # Für Sessions!
 # SQLAlchemy-Konfiguration
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///namtaru.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 # DB initialisieren
 db.init_app(app)
 
