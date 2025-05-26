@@ -115,6 +115,8 @@ def admin_panel():
 @app.route('/devices')
 @login_required()
 def devices():
+    all_devices = Device.query.all()
+    logger.info(f"[DEVICES] Gesamt: {len(all_devices)}, Session: {session}")
     return render_template('devices.html', devices=Device.query.all(), role=session['role'])
 
 @app.route('/devices/delete/<int:id>', methods=['POST'])
