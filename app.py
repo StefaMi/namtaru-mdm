@@ -140,7 +140,7 @@ def delete_device(device_id):
     return redirect(url_for('devices'))
 
 @app.route('/generate_qr')
-@login_required(role='admin')
+@login_required(role='admin, helpdesk')
 def generate_qr():
     token = str(uuid.uuid4())
     url = f"https://namtaru-mdm.onrender.com/enroll?token={token}"
