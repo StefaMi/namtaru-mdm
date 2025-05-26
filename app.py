@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, request as flask_request
 from models import db, User, Device, Role
 from functools import wraps
 from datetime import datetime
@@ -19,34 +19,38 @@ logger.setLevel(logging.DEBUG)
 logger.addHandler(file_handler)
 logger.addHandler(stream_handler)
 
-# Flask App
+# Flask App initialisieren
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET', 'supersecret')
 
-# PostgreSQL Konfiguration
-# Render stellt das ENV-Var DATABASE_URL zur Verfügung
-db_url = os.getenv('DATABASE_URL', '')
-if db_url.startswith('postgres://'):
-    # SQLAlchemy benötigt postgresql://
-    db_url = db_url.replace('postgres://', 'postgresql://', 1)
-app.config['SQLALCHEMY_DATABASE_URI'] = db_url
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# Datenbank-Konfiguration
+# Priorität: Render Postgres, fall back auf SQLite
+database_url = os.getenv('DATABASE_URL')
+if database_url:
+    # Render liefert manchmal postgres:// statt postgresql://
+    if database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+    logger.info("Using PostgreSQL: %s", database_url)
+else:
+    sqlite_path = os.path.join(os.getcwd(), 'namtaru.db')
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{sqlite_path}'
+    logger.info("Using SQLite fallback: %s", sqlite_path)
 
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # DB initialisieren
 db.init_app(app)
 
-# Initial-Seed bei leerer DB
+# Initial-Seed nur, wenn DB leer
 with app.app_context():
-    # Tabellen erstellen
     db.create_all()
-    # Rollen nur anlegen, wenn Tabelle leer
     if Role.query.count() == 0:
-        logger.info("Initialisiere Rollen und Benutzer...")
+        logger.info("Seed-Datenbank initialisieren...")
         admin_role = Role(name="admin", can_delete_devices=True, can_manage_users=True, can_assign_roles=True)
         helpdesk_role = Role(name="helpdesk")
         db.session.add_all([admin_role, helpdesk_role])
         db.session.commit()
-
+        
         admin_user = User(username="admin", role=admin_role)
         admin_user.set_password(os.getenv('ADMIN_PW', 'Milash91281288!'))
         helpdesk_user = User(username="helpdesk", role=helpdesk_role)
@@ -92,7 +96,9 @@ def login():
 
 @app.route('/logout')
 def logout():
-    session.clear(); flash("Ausgeloggt", "info"); return render_template('logout.html')
+    session.clear()
+    flash("Ausgeloggt", "info")
+    return render_template('logout.html')
 
 @app.route('/home')
 @login_required()
@@ -114,24 +120,32 @@ def devices():
 @login_required('admin')
 def delete_device(id):
     d = Device.query.get_or_404(id)
-    db.session.delete(d); db.session.commit()
-    flash("Gelöscht", "success"); return redirect(url_for('devices'))
+    db.session.delete(d)
+    db.session.commit()
+    flash("Gelöscht", "success")
+    return redirect(url_for('devices'))
 
 @app.route('/generate_qr')
 @login_required(['admin','helpdesk'])
 def generate_qr():
-    t = str(uuid.uuid4()); url = f"{request.url_root}enroll?token={t}"
+    t = str(uuid.uuid4())
+    url = f"{flask_request.url_root}enroll?token={t}"
     os.makedirs('static/qrcodes', exist_ok=True)
     qrcode.make(url).save(f"static/qrcodes/{t}.png")
     return render_template('qr_preview.html', qr_path=f"qrcodes/{t}.png", token=t)
 
 @app.route('/enroll')
 def enroll():
-    t = request.args.get('token');
-    db.session.add(Device(name="Unbenanntes Gerät", enrollment_token=t, created_at=datetime.utcnow())); db.session.commit()
-    flash("Registriert", "success"); return redirect(url_for('devices'))
+    t = request.args.get('token')
+    db.session.add(Device(name="Unbenanntes Gerät", enrollment_token=t, created_at=datetime.utcnow()))
+    db.session.commit()
+    flash("Registriert", "success")
+    return redirect(url_for('devices'))
 
 @app.errorhandler(500)
-def error500(e): return render_template('500.html'), 500
+def error500(e):
+    logger.exception("Interner Serverfehler")
+    return render_template('500.html'), 500
 
-if __name__=='__main__': app.run(debug=True, port=5000)
+if __name__=='__main__':
+    app.run(debug=True, port=5000)
