@@ -16,7 +16,6 @@ log_formatter = logging.Formatter('[%(asctime)s] [%(levelname)s] %(message)s')
 file_handler = logging.FileHandler('logs/app.log')
 file_handler.setFormatter(log_formatter)
 file_handler.setLevel(logging.DEBUG)
-
 stream_handler = logging.StreamHandler(sys.stdout)
 stream_handler.setFormatter(log_formatter)
 
@@ -50,7 +49,7 @@ with app.app_context():
             can_assign_roles=True
         )
         helpdesk_role = Role(
-            name="helpdesk"  # Standardrechte: nur Ansicht
+            name="helpdesk"  # Standardrechte: nur Ansicht + QR
         )
         db.session.add_all([admin_role, helpdesk_role])
         db.session.commit()
@@ -62,6 +61,23 @@ with app.app_context():
         helpdesk_user.set_password("helpdesk")
         db.session.add_all([admin_user, helpdesk_user])
         db.session.commit()
+
+# Decorator für Login + Rollen
+def login_required(role=None):
+    def wrapper(f):
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            if 'user' not in session:
+                return redirect(url_for('login'))
+            if role:
+                # Rolle kann String oder Liste sein
+                allowed = role if isinstance(role, (list, tuple)) else [role]
+                if session.get('role') not in allowed:
+                    flash("Keine Berechtigung für diese Aktion", "warning")
+                    return redirect(url_for('home'))
+            return f(*args, **kwargs)
+        return decorated
+    return wrapper
 
 # Routen
 @app.route('/')
@@ -92,20 +108,6 @@ def logout():
     logger.info(f"Logout: {user}")
     flash("Erfolgreich ausgeloggt", "info")
     return render_template('logout.html')
-
-# Decorator für Login + Rollen
-def login_required(role=None):
-    def wrapper(f):
-        @wraps(f)
-        def decorated(*args, **kwargs):
-            if 'user' not in session:
-                return redirect(url_for('login'))
-            if role and session.get('role') != role:
-                flash("Keine Berechtigung für diese Aktion", "warning")
-                return redirect(url_for('home'))
-            return f(*args, **kwargs)
-        return decorated
-    return wrapper
 
 @app.route('/home')
 @login_required()
@@ -139,8 +141,9 @@ def delete_device(device_id):
     flash(f"Gerät '{device.name}' wurde gelöscht", "success")
     return redirect(url_for('devices'))
 
+# QR-Code erstellen (Admin + Helpdesk)
 @app.route('/generate_qr')
-@login_required(role='admin, helpdesk')
+@login_required(role=['admin', 'helpdesk'])
 def generate_qr():
     token = str(uuid.uuid4())
     url = f"https://namtaru-mdm.onrender.com/enroll?token={token}"
