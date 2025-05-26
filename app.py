@@ -2,7 +2,8 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from models import db, User, Device, Role
 from functools import wraps
 from datetime import datetime
-import logging, os, sys
+import logging
+import os, sys
 import qrcode, uuid
 
 # Logging konfigurieren
@@ -23,41 +24,41 @@ logger.addHandler(stream_handler)
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET', 'supersecret')
 
-# Datenbank-Konfiguration
-# Priorität: Render Postgres, fall back auf SQLite
+# Datenbank-Konfiguration (Postgres vs SQLite)
 database_url = os.getenv('DATABASE_URL')
 if database_url:
-    # Render liefert manchmal postgres:// statt postgresql://
     if database_url.startswith('postgres://'):
         database_url = database_url.replace('postgres://', 'postgresql://', 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-    logger.info("Using PostgreSQL: %s", database_url)
+    logger.info("Using PostgreSQL DB")
 else:
     sqlite_path = os.path.join(os.getcwd(), 'namtaru.db')
     app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{sqlite_path}'
-    logger.info("Using SQLite fallback: %s", sqlite_path)
-
+    logger.info("Using SQLite fallback DB")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 # DB initialisieren
 db.init_app(app)
 
-# Initial-Seed nur, wenn DB leer
-with app.app_context():
-    db.create_all()
+# Initial-Seed nur einmal
+def seed_db():
     if Role.query.count() == 0:
-        logger.info("Seed-Datenbank initialisieren...")
+        logger.info("Seeding initial data...")
         admin_role = Role(name="admin", can_delete_devices=True, can_manage_users=True, can_assign_roles=True)
         helpdesk_role = Role(name="helpdesk")
         db.session.add_all([admin_role, helpdesk_role])
         db.session.commit()
-        
         admin_user = User(username="admin", role=admin_role)
         admin_user.set_password(os.getenv('ADMIN_PW', 'Milash91281288!'))
         helpdesk_user = User(username="helpdesk", role=helpdesk_role)
         helpdesk_user.set_password(os.getenv('HELPDESK_PW', 'helpdesk'))
         db.session.add_all([admin_user, helpdesk_user])
         db.session.commit()
-        logger.info("Seed abgeschlossen.")
+        logger.info("Seed completed.")
+
+with app.app_context():
+    db.create_all()
+    seed_db()
 
 # Auth-Decorator
 def login_required(role=None):
@@ -83,13 +84,13 @@ def index():
 @app.route('/login', methods=['GET','POST'])
 def login():
     if request.method == 'POST':
-        u = request.form['username']
-        p = request.form['password']
-        user = User.query.filter_by(username=u).first()
-        if user and user.check_password(p):
-            session['user'], session['role'] = user.username, user.role.name
-            logger.info(f"Login: {u}")
-            flash(f"Eingeloggt als {u}", "success")
+        username = request.form['username']
+        password = request.form['password']
+        user = User.query.filter_by(username=username).first()
+        if user and user.check_password(password):
+            session['user'] = user.username
+            session['role'] = user.role.name
+            flash(f"Eingeloggt als {user.username}", "success")
             return redirect(url_for('home'))
         flash("Ungültiger Login", "danger")
     return render_template('login.html')
@@ -122,48 +123,44 @@ def delete_device(id):
     d = Device.query.get_or_404(id)
     db.session.delete(d)
     db.session.commit()
-    flash("Gelöscht", "success")
+    flash("Gerät gelöscht", "success")
     return redirect(url_for('devices'))
 
 @app.route('/generate_qr')
 @login_required(['admin','helpdesk'])
 def generate_qr():
     t = str(uuid.uuid4())
-    url = f"{flask_request.url_root}enroll?token={t}"
+    enroll_url = f"{request.url_root}enroll?token={t}"
     os.makedirs('static/qrcodes', exist_ok=True)
-    qrcode.make(url).save(f"static/qrcodes/{t}.png")
+    qrcode.make(enroll_url).save(f"static/qrcodes/{t}.png")
     return render_template('qr_preview.html', qr_path=f"qrcodes/{t}.png", token=t)
 
 @app.route('/enroll')
 def enroll():
-    t = request.args.get('token')
-    db.session.add(Device(name="Unbenanntes Gerät", enrollment_token=t, created_at=datetime.utcnow()))
-    db.session.commit()
-    flash("Registriert", "success")
-    return redirect(url_for('devices'))
+    token = request.args.get('token')
+    return render_template('enroll_device.html', token=token)
 
-# Hier kommt die neue JSON-API-Route
 @app.route('/submit_device', methods=['POST'])
 def submit_device():
     data = flask_request.get_json()
-    # … Token, Plattform, Screen, User-Agent auswerten …
+    token = data.get('token')
+    platform = data.get('platform')
+    device_type = data.get('type')
+    screen = data.get('screen')
+    user_agent = data.get('user_agent')
     new_device = Device(
         name="Unbenanntes Gerät",
-        enrollment_token=data.get('token'),
-        platform=data.get('platform'),
-        type=data.get('type'),
-        screen=data.get('screen'),
-        user_agent=data.get('user_agent'),
+        enrollment_token=token,
+        platform=platform,
+        type=device_type,
+        screen=screen,
+        user_agent=user_agent,
         status="Aktiv",
         created_at=datetime.utcnow()
     )
     db.session.add(new_device)
     db.session.commit()
     return {"success": True}, 201
-
-# Fehlerhandler / Sonstige Routen folgen hier…
-@app.errorhandler(500)
-def error500(e):
 
 @app.errorhandler(500)
 def error500(e):
