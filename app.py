@@ -2,16 +2,11 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from models import db, User, Device, Role
 from functools import wraps
 from datetime import datetime
-import logging
-import qrcode
-import uuid
-import os
-import sys
+import logging, os, sys
+import qrcode, uuid
 
-# Sicherstellen, dass der logs-Ordner existiert
+# Logging konfigurieren
 os.makedirs("logs", exist_ok=True)
-
-# Logging-Konfiguration
 log_formatter = logging.Formatter('[%(asctime)s] [%(levelname)s] %(message)s')
 file_handler = logging.FileHandler('logs/app.log')
 file_handler.setFormatter(log_formatter)
@@ -24,45 +19,43 @@ logger.setLevel(logging.DEBUG)
 logger.addHandler(file_handler)
 logger.addHandler(stream_handler)
 
+# Flask App
 app = Flask(__name__)
-app.secret_key = "Milash91281288!"  # Für Sessions!
+app.secret_key = os.getenv('FLASK_SECRET', 'supersecret')
 
-# SQLAlchemy-Konfiguration
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///namtaru.db'
+# PostgreSQL Konfiguration
+# Render stellt das ENV-Var DATABASE_URL zur Verfügung
+db_url = os.getenv('DATABASE_URL', '')
+if db_url.startswith('postgres://'):
+    # SQLAlchemy benötigt postgresql://
+    db_url = db_url.replace('postgres://', 'postgresql://', 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # DB initialisieren
 db.init_app(app)
 
-# Datenbank & Initial-Seed
+# Initial-Seed bei leerer DB
 with app.app_context():
-    db_path = os.path.join(os.getcwd(), 'namtaru.db')
-    if not os.path.isfile(db_path):
-        db.create_all()
-        logger.info("SQLite-Datenbank wurde auf dem Server neu erstellt.")
-
-        # Rollen anlegen
-        admin_role = Role(
-            name="admin",
-            can_delete_devices=True,
-            can_manage_users=True,
-            can_assign_roles=True
-        )
-        helpdesk_role = Role(
-            name="helpdesk"  # Standardrechte: nur Ansicht + QR
-        )
+    # Tabellen erstellen
+    db.create_all()
+    # Rollen nur anlegen, wenn Tabelle leer
+    if Role.query.count() == 0:
+        logger.info("Initialisiere Rollen und Benutzer...")
+        admin_role = Role(name="admin", can_delete_devices=True, can_manage_users=True, can_assign_roles=True)
+        helpdesk_role = Role(name="helpdesk")
         db.session.add_all([admin_role, helpdesk_role])
         db.session.commit()
 
-        # Benutzer anlegen
         admin_user = User(username="admin", role=admin_role)
-        admin_user.set_password("Milash91281288!")
+        admin_user.set_password(os.getenv('ADMIN_PW', 'Milash91281288!'))
         helpdesk_user = User(username="helpdesk", role=helpdesk_role)
-        helpdesk_user.set_password("helpdesk")
+        helpdesk_user.set_password(os.getenv('HELPDESK_PW', 'helpdesk'))
         db.session.add_all([admin_user, helpdesk_user])
         db.session.commit()
+        logger.info("Seed abgeschlossen.")
 
-# Decorator für Login + Rollen
+# Auth-Decorator
 def login_required(role=None):
     def wrapper(f):
         @wraps(f)
@@ -70,10 +63,9 @@ def login_required(role=None):
             if 'user' not in session:
                 return redirect(url_for('login'))
             if role:
-                # Rolle kann String oder Liste sein
                 allowed = role if isinstance(role, (list, tuple)) else [role]
                 if session.get('role') not in allowed:
-                    flash("Keine Berechtigung für diese Aktion", "warning")
+                    flash("Keine Berechtigung", "warning")
                     return redirect(url_for('home'))
             return f(*args, **kwargs)
         return decorated
@@ -84,93 +76,62 @@ def login_required(role=None):
 def index():
     return redirect(url_for('home'))
 
-@app.route('/login', methods=['GET', 'POST'])
+@app.route('/login', methods=['GET','POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        user = User.query.filter_by(username=username).first()
-        if user and user.check_password(password):
-            session['user'] = user.username
-            session['role'] = user.role.name if user.role else 'user'
-            logger.info(f"Login erfolgreich: {user.username} ({session['role']})")
-            flash(f"Eingeloggt als {user.username}", "success")
+        u = request.form['username']
+        p = request.form['password']
+        user = User.query.filter_by(username=u).first()
+        if user and user.check_password(p):
+            session['user'], session['role'] = user.username, user.role.name
+            logger.info(f"Login: {u}")
+            flash(f"Eingeloggt als {u}", "success")
             return redirect(url_for('home'))
-        else:
-            logger.warning(f"Login fehlgeschlagen für Benutzer: {username}")
-            flash("Ungültiger Benutzer oder Passwort", "danger")
+        flash("Ungültiger Login", "danger")
     return render_template('login.html')
 
 @app.route('/logout')
 def logout():
-    user = session.get('user')
-    session.clear()
-    logger.info(f"Logout: {user}")
-    flash("Erfolgreich ausgeloggt", "info")
-    return render_template('logout.html')
+    session.clear(); flash("Ausgeloggt", "info"); return render_template('logout.html')
 
 @app.route('/home')
 @login_required()
 def home():
-    user = session.get('user')
-    role = session.get('role')
-    device_count = Device.query.count()
-    recent_logins = 5  # Platzhalter
-    return render_template(
-        'home.html', user=user, role=role,
-        device_count=device_count, recent_logins=recent_logins
-    )
+    stats = {'devices': Device.query.count(), 'logins': 5}
+    return render_template('home.html', user=session['user'], role=session['role'], **stats)
 
 @app.route('/admin')
-@login_required(role='admin')
+@login_required('admin')
 def admin_panel():
-    return render_template('admin.html', user=session.get('user'), role=session.get('role'))
+    return render_template('admin.html', user=session['user'], role=session['role'])
 
 @app.route('/devices')
 @login_required()
 def devices():
-    all_devices = Device.query.all()
-    return render_template('devices.html', devices=all_devices, role=session.get('role'))
+    return render_template('devices.html', devices=Device.query.all(), role=session['role'])
 
-@app.route('/devices/delete/<int:device_id>', methods=['POST'])
-@login_required(role='admin')
-def delete_device(device_id):
-    device = Device.query.get_or_404(device_id)
-    db.session.delete(device)
-    db.session.commit()
-    flash(f"Gerät '{device.name}' wurde gelöscht", "success")
-    return redirect(url_for('devices'))
+@app.route('/devices/delete/<int:id>', methods=['POST'])
+@login_required('admin')
+def delete_device(id):
+    d = Device.query.get_or_404(id)
+    db.session.delete(d); db.session.commit()
+    flash("Gelöscht", "success"); return redirect(url_for('devices'))
 
-# QR-Code erstellen (Admin + Helpdesk)
 @app.route('/generate_qr')
-@login_required(role=['admin', 'helpdesk'])
+@login_required(['admin','helpdesk'])
 def generate_qr():
-    token = str(uuid.uuid4())
-    url = f"https://namtaru-mdm.onrender.com/enroll?token={token}"
+    t = str(uuid.uuid4()); url = f"{request.url_root}enroll?token={t}"
     os.makedirs('static/qrcodes', exist_ok=True)
-    img = qrcode.make(url)
-    path = f"static/qrcodes/{token}.png"
-    img.save(path)
-    return render_template('qr_preview.html', qr_path=path, token=token)
+    qrcode.make(url).save(f"static/qrcodes/{t}.png")
+    return render_template('qr_preview.html', qr_path=f"qrcodes/{t}.png", token=t)
 
 @app.route('/enroll')
 def enroll():
-    token = request.args.get('token')
-    new_device = Device(
-        name="Unbenanntes Gerät",
-        enrollment_token=token,
-        created_at=datetime.utcnow()
-    )
-    db.session.add(new_device)
-    db.session.commit()
-    flash("Gerät erfolgreich registriert!", "success")
-    return redirect(url_for('devices'))
+    t = request.args.get('token');
+    db.session.add(Device(name="Unbenanntes Gerät", enrollment_token=t, created_at=datetime.utcnow())); db.session.commit()
+    flash("Registriert", "success"); return redirect(url_for('devices'))
 
-# Fehlerhandler
 @app.errorhandler(500)
-def internal_error(error):
-    logger.exception("Interner Serverfehler")
-    return render_template('500.html'), 500
+def error500(e): return render_template('500.html'), 500
 
-if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+if __name__=='__main__': app.run(debug=True, port=5000)
