@@ -53,9 +53,9 @@ with app.app_context():
         db.session.commit()
 
         admin_user = User(username="admin", role=admin_role)
-        admin_user.set_password("Milash91281288!")
+        admin_user.set_password("demo1234")
         support_user = User(username="support", role=support_role)
-        support_user.set_password("supportpass")
+        support_user.set_password("demo1234")
         db.session.add_all([admin_user, support_user])
         db.session.commit()
 
@@ -115,7 +115,7 @@ def login_required(role=None):
     return wrapper
 
 # Home (geschützt)
-@app.route('/')
+@app.route('/home')
 @login_required()
 def home():
     logger.info(f"Aktive Session beim Home-Zugriff: {session}")
@@ -144,20 +144,6 @@ def admin_panel():
 def devices():
     all_devices = Device.query.all()
     return render_template('devices.html', devices=all_devices, role=session.get('role'))
-
-# Gerät hinzufügen (manuell)
-@app.route('/devices/add', methods=['GET', 'POST'])
-@login_required()
-def add_device():
-    if request.method == 'POST':
-        name = request.form['name']
-        new_device = Device(name=name, created_at=datetime.utcnow())
-        db.session.add(new_device)
-        db.session.commit()
-        logger.info(f"Gerät manuell hinzugefügt: {name}")
-        flash("Gerät hinzugefügt", "success")
-        return redirect(url_for('devices'))
-    return render_template('add_device.html')
 
 # Gerät löschen
 @app.route('/devices/delete/<int:device_id>', methods=['POST'])
@@ -197,6 +183,8 @@ def enroll():
     new_device = Device(
         name="Unbenanntes Gerät",
         enrollment_token=token,
+        platform="unbekannt",
+        type="unbekannt",
         created_at=datetime.utcnow()
     )
     db.session.add(new_device)
