@@ -142,6 +142,29 @@ def enroll():
     flash("Registriert", "success")
     return redirect(url_for('devices'))
 
+# Hier kommt die neue JSON-API-Route
+@app.route('/submit_device', methods=['POST'])
+def submit_device():
+    data = flask_request.get_json()
+    # … Token, Plattform, Screen, User-Agent auswerten …
+    new_device = Device(
+        name="Unbenanntes Gerät",
+        enrollment_token=data.get('token'),
+        platform=data.get('platform'),
+        type=data.get('type'),
+        screen=data.get('screen'),
+        user_agent=data.get('user_agent'),
+        status="Aktiv",
+        created_at=datetime.utcnow()
+    )
+    db.session.add(new_device)
+    db.session.commit()
+    return {"success": True}, 201
+
+# Fehlerhandler / Sonstige Routen folgen hier…
+@app.errorhandler(500)
+def error500(e):
+
 @app.errorhandler(500)
 def error500(e):
     logger.exception("Interner Serverfehler")
