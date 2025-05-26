@@ -83,7 +83,7 @@ def login():
             logger.info(f"Login erfolgreich: {user.username} ({session['role']})")
             logger.info(f"Session gesetzt: {session}")
             flash(f"Eingeloggt als {user.username}", "success")
-            return redirect(url_for('home'))
+            return redirect(url_for('dashboard'))
         else:
             logger.warning(f"Login fehlgeschlagen für Benutzer: {username}")
             flash("Ungültiger Benutzer oder Passwort", "danger")
