@@ -28,11 +28,6 @@ logger.addHandler(stream_handler)
 app = Flask(__name__)
 app.secret_key = "Milash91281288!"  # Für Sessions!
 
-# Session-Konfiguration für HTTPS-Umgebungen (Render)
-app.config['SESSION_COOKIE_SECURE'] = True
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-
 # SQLAlchemy-Konfiguration
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///namtaru.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -63,7 +58,10 @@ with app.app_context():
         db.session.add(demo_device)
         db.session.commit()
 
-
+# Root Route auf Dashboard weiterleiten
+@app.route('/')
+def index():
+    return redirect(url_for('home'))
 
 # Login-Route
 @app.route('/login', methods=['GET', 'POST'])
@@ -191,7 +189,11 @@ def enroll():
     flash("Gerät erfolgreich registriert!", "success")
     return redirect(url_for('devices'))
 
-
+# Fehlerhandler für 500
+@app.errorhandler(500)
+def internal_error(error):
+    logger.exception("Interner Serverfehler")
+    return render_template("500.html"), 500
 
 # App starten
 if __name__ == '__main__':
