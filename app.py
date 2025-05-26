@@ -194,11 +194,7 @@ def enroll():
     flash("Gerät erfolgreich registriert!", "success")
     return redirect(url_for('devices'))
 
-# Fehlerhandler für 500
-@app.errorhandler(500)
-def internal_error(error):
-    logger.exception("Interner Serverfehler")
-    return render_template("500.html"), 500
+
 
 # App starten
 if __name__ == '__main__':
