@@ -29,7 +29,7 @@ app = Flask(__name__)
 app.secret_key = "Milash91281288!"  # Für Sessions!
 
 # Session-Konfiguration für HTTPS-Umgebungen (Render)
-app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_SECURE'] = False
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
