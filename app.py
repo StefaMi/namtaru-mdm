@@ -63,10 +63,7 @@ with app.app_context():
         db.session.add(demo_device)
         db.session.commit()
 
-# Landing Page
-@app.route("/")
-def landing():
-    return render_template("landing.html")
+
 
 # Login-Route
 @app.route('/login', methods=['GET', 'POST'])
