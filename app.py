@@ -24,6 +24,12 @@ logger.addHandler(stream_handler)
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET', 'supersecret')
 
+app.config.update(
+    SESSION_COOKIE_SECURE=False,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_HTTPONLY=True
+)
+
 # Datenbank-Konfiguration (Postgres vs SQLite)
 database_url = os.getenv('DATABASE_URL')
 if database_url:
