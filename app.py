@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, request as flask_request
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from models import db, User, Device, Role
 from functools import wraps
 from datetime import datetime
@@ -45,6 +46,15 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # DB initialisieren
 db.init_app(app)
+
+# ✅ LoginManager Setup
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "login"
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(init(user_id))
 
 # Initial-Seed nur einmal
 def seed_db():
@@ -94,24 +104,23 @@ def login():
         password = request.form['password']
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password):
-            session['user'] = user.username
-            session['role'] = user.role.name
+            login_user(user)
             flash(f"Eingeloggt als {user.username}", "success")
             return redirect(url_for('home'))
         flash("Ungültiger Login", "danger")
     return render_template('login.html')
 
 @app.route('/logout')
+@login_required
 def logout():
-    session.clear()
+    logout_user()
     flash("Ausgeloggt", "info")
-    return render_template('logout.html')
+    return redirect(url_for('login'))
 
 @app.route('/home')
 @login_required()
 def home():
-    stats = {'devices': Device.query.count(), 'logins': 5}
-    return render_template('home.html', user=session['user'], role=session['role'], **stats)
+    return render_template('home.html', user=current_user.username, role=current_user.role.name)
 
 @app.route('/admin')
 @login_required('admin')
